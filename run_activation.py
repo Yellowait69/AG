@@ -5,15 +5,55 @@ import logging
 from datetime import datetime
 from src.database import DatabaseManager
 from sql.queries import QUERIES
+# Ajout de l'import pour le dossier de sortie
+from config.settings import OUTPUT_DIR
 
 # --- CONFIGURATION ---
 INPUT_FILE_SOURCES = 'data/input/contrats_sources.xlsx' # Fichier contenant les ID sources si dispo
 OUTPUT_FILE_MAPPING = 'data/input/contrats_en_attente_activation.xlsx'
 DEFAULT_PREMIUM_AMOUNT = 100.00  # Montant par défaut si introuvable
 
+# Liste des tables à figer (Snapshot) pour la comparaison future
+TABLES_TO_SNAPSHOT = [
+    "LV.SCNTT0", "LV.SAVTT0", "LV.PRCTT0",
+    "LV.SWBGT0", "LV.SCLST0", "LV.SCLRT0",
+    "LV.BSPDT0", "LV.BSPGT0"
+]
+
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+def snapshot_source_contract(db, internal_id, contract_ext):
+    """
+    Sauvegarde toutes les tables du contrat source dans des fichiers .pkl (Pickle).
+    Cela permet de figer l'état du contrat source à J0 pour la comparaison à J+7,
+    même si la base de données source est modifiée entre temps.
+    """
+    snapshot_dir = os.path.join(OUTPUT_DIR, 'snapshots')
+    if not os.path.exists(snapshot_dir):
+        os.makedirs(snapshot_dir, exist_ok=True)
+
+    logger.info(f"   [Snapshot] 📸 Sauvegarde de l'état source pour {contract_ext} (ID: {internal_id})...")
+
+    for table in TABLES_TO_SNAPSHOT:
+        if table not in QUERIES:
+            continue
+
+        try:
+            # On utilise les mêmes requêtes que pour la comparaison
+            query = QUERIES[table].format(internal_id=internal_id)
+            df_source = db.get_data(query)
+
+            # Sauvegarde au format Pickle (garde les types exacts : dates, float...)
+            # Nom du fichier : contractExt_tableName.pkl
+            filename = f"{contract_ext}_{table}.pkl"
+            filepath = os.path.join(snapshot_dir, filename)
+
+            df_source.to_pickle(filepath)
+
+        except Exception as e:
+            logger.error(f"   [!] Erreur snapshot {table}: {e}")
 
 def get_source_premium_amount(db, internal_id_source):
     """
@@ -86,7 +126,7 @@ def get_internal_id_with_retry(db, contract_ext, max_retries=3):
     return None
 
 def main():
-    logger.info("--- Démarrage du Script d'Activation (Duplication & Paiement) ---")
+    logger.info("--- Démarrage du Script d'Activation (Duplication & Paiement & Snapshot) ---")
 
     # 1. Initialisation
     db = DatabaseManager()
@@ -110,7 +150,21 @@ def main():
         old_contract = str(old_contract).strip()
         logger.info(f"--- Traitement Source : {old_contract} ---")
 
-        # --- ÉTAPE A : DUPLICATION (ELIA) ---
+        # --- ÉTAPE A : SNAPSHOT & PRÉPARATION ---
+        # On récupère l'ID interne source tout de suite pour faire le snapshot
+        id_int_source = get_internal_id_with_retry(db, old_contract, max_retries=1)
+
+        if id_int_source:
+            # CRUCIAL : On sauvegarde l'état actuel du contrat source
+            snapshot_source_contract(db, id_int_source, old_contract)
+
+            # On récupère le montant de la prime
+            montant_prime = get_source_premium_amount(db, id_int_source)
+        else:
+            logger.warning("   [!] Impossible de trouver ID source. Snapshot impossible & Prime par défaut.")
+            montant_prime = DEFAULT_PREMIUM_AMOUNT
+
+        # --- ÉTAPE B : DUPLICATION (ELIA) ---
         try:
             new_contract_ext = duplicate_contract_in_elia(old_contract, db)
         except Exception as e:
@@ -120,20 +174,8 @@ def main():
             })
             continue
 
-        # --- ÉTAPE B : RÉCUPÉRATION DONNÉES TECHNIQUES ---
-        # B1. Récup ID Interne Source (pour trouver le montant de la prime)
-        id_int_source = get_internal_id_with_retry(db, old_contract, max_retries=1)
-
-        # B2. Détermination du montant à payer
-        if id_int_source:
-            montant_prime = get_source_premium_amount(db, id_int_source)
-        else:
-            montant_prime = DEFAULT_PREMIUM_AMOUNT
-            logger.warning("   Impossible de trouver ID source, utilisation montant par défaut.")
-
-        # B3. Récup ID Interne NOUVEAU (Crucial pour injecter le paiement)
-        # Note : Si la duplication ELIA n'a pas encore atteint la table LV.SCNTT0 (LISA),
-        # cela échouera ici. Dans ce cas, on ne peut PAS faire le paiement auto.
+        # --- ÉTAPE C : PAIEMENT (LISA) ---
+        # C1. Récup ID Interne NOUVEAU (Crucial pour injecter le paiement)
         id_int_new = get_internal_id_with_retry(db, new_contract_ext, max_retries=5)
 
         if not id_int_new:
@@ -146,7 +188,7 @@ def main():
             })
             continue
 
-        # --- ÉTAPE C : PAIEMENT (LISA) ---
+        # C2. Injection du paiement
         logger.info(f"   -> Injection paiement de {montant_prime}€ sur contrat {id_int_new}...")
         payment_success = db.inject_payment(contract_internal_id=id_int_new, amount=montant_prime)
 
