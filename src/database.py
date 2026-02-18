@@ -1,6 +1,7 @@
 import pandas as pd
 import urllib.parse
 import logging
+from datetime import datetime
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from config.settings import DB_CONFIG
@@ -67,6 +68,63 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Erreur inattendue : {e}")
             raise
+
+    def inject_payment(self, contract_internal_id, amount, payment_date=None):
+        """
+        Insère un paiement dans LV.PRCTT0 pour activer le contrat.
+        Se base sur la structure de données fournie (Mode 6).
+        """
+        # Si pas de date fournie, on prend maintenant
+        if payment_date is None:
+            now = datetime.now()
+            d_ref = now.strftime('%Y-%m-%d')
+            tstamp = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+        else:
+            d_ref = payment_date
+            # Si payment_date est juste une string 'YYYY-MM-DD', on ajoute l'heure pour le timestamp
+            if len(str(payment_date)) == 10:
+                tstamp = f"{payment_date} 12:00:00.000000"
+            else:
+                tstamp = payment_date
+
+        # Génération d'une communication structurée fictive basée sur l'ID contrat
+        # Format : 820 + 9 chiffres ID + 99 (juste pour l'unicité)
+        fake_commu = f"820{str(contract_internal_id)[:9]}99"
+
+        # Requête INSERT paramétrée
+        query = text("""
+                     INSERT INTO LV.PRCTT0 (
+                         C_STE, NO_CNT, C_MD_PMT, D_REF_PRM, NO_ORD_RCP, TSTAMP_CRT_RCT,
+                         C_TY_RCT, D_BISM_DVA, D_BISM_DCOR, M_PAY, NM_CP,
+                         T_ADR_1_CP, T_ADR_2_CP, C_ETAT_RCP, T_COMMU, NO_BUR_SERV,
+                         NO_AVT, PC_COM, PC_FR_GEST, NO_IBAN_CP, C_BIC_CP,
+                         NM_AUTEUR_CRT, D_CRT, TY_DMOD, D_ORGN_DEV, C_ORGN_DEV
+                     ) VALUES (
+                                  'A', :no_cnt, '6', :d_ref, '1', :tstamp,
+                                  '1', :d_ref, :d_ref, :amount, 'TEST AUTOMATION',
+                                  'RUE DU TEST 1', '1000 BRUXELLES', 'B', :commu, '12831',
+                                  '0', 0.0245, 0.0105, 'BE47001304609580', 'GEBABEBB',
+                                  'AUTO_TEST', :d_ref, 'O', :d_ref, 'EUR'
+                              )
+                     """)
+
+        params = {
+            'no_cnt': contract_internal_id,
+            'd_ref': d_ref,
+            'tstamp': tstamp,
+            'amount': amount,
+            'commu': fake_commu
+        }
+
+        try:
+            # .begin() gère la transaction et le commit automatique
+            with self.engine.begin() as connection:
+                connection.execute(query, params)
+                logger.info(f"SUCCÈS: Paiement de {amount} EUR injecté pour le contrat {contract_internal_id} (Date: {d_ref})")
+                return True
+        except Exception as e:
+            logger.error(f"ÉCHEC: Erreur lors de l'injection du paiement pour {contract_internal_id} : {e}")
+            return False
 
     def test_connection(self):
         """Méthode utilitaire pour vérifier si la connexion fonctionne."""
