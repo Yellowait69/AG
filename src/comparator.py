@@ -1,113 +1,172 @@
-import pandas as pd
-import numpy as np
-from config.exclusions import IGNORE_COLUMNS, SPECIFIC_EXCLUSIONS
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 
-def compare_dataframes(df_ref, df_new, table_name):
-    """
-    Fonction centrale de comparaison entre deux jeux de données (DataFrames).
+public static class DataComparer
+{
+    /// <summary>
+    /// Fonction centrale de comparaison entre deux jeux de données (DataTable).
+    /// </summary>
+    /// <returns>Un tuple contenant le statut, un éventuel message d'erreur, et un DataTable contenant les différences.</returns>
+    public static (string Status, string ErrorMessage, DataTable DiffDetails) CompareDataTables(DataTable dtRef, DataTable dtNew, string tableName)
+    {
+        // ÉTAPE 1 : Contrôles de validité initiaux
+        if (dtRef.Rows.Count == 0 && dtNew.Rows.Count == 0)
+            return ("OK_EMPTY", null, null);
 
-    Objectif :
-    Comparer le contrat source (référence) et le contrat cible (nouveau) pour une table donnée,
-    en ignorant les champs techniques (dates de création, ID générés, etc.) et en s'assurant
-    que les données métiers sont strictement identiques.
+        if (dtRef.Rows.Count == 0 || dtNew.Rows.Count == 0)
+            return ("KO_MISSING_DATA", $"L'un des deux DataTables est vide pour la table {tableName}.", null);
 
-    Args:
-        df_ref (pd.DataFrame): Les données extraites du contrat source (généralement depuis le snapshot).
-        df_new (pd.DataFrame): Les données extraites du nouveau contrat nouvellement activé.
-        table_name (str): Le nom de la table analysée (ex: 'LV.SCNTT0'), utilisé pour les règles d'exclusion.
+        // ÉTAPE 2 : Isolation des données (Copies)
+        DataTable dt1 = dtRef.Copy();
+        DataTable dt2 = dtNew.Copy();
 
-    Returns:
-        tuple: (Statut de la comparaison (str), Détails des différences (pd.DataFrame ou str))
-    """
+        // ÉTAPE 3 : Application des règles d'exclusion
+        // (Nécessite la classe ColumnConfig générée précédemment)
+        var colsToDrop = new HashSet<string>(ColumnConfig.IgnoreColumns, StringComparer.OrdinalIgnoreCase);
+        if (ColumnConfig.SpecificExclusions.TryGetValue(tableName, out var specificCols))
+        {
+            colsToDrop.UnionWith(specificCols);
+        }
 
-    # ÉTAPE 1 : Contrôles de validité initiaux
-    # On vérifie d'abord si les jeux de données sont vides pour éviter des traitements inutiles et des plantages.
-    if df_ref.empty and df_new.empty:
-        return "OK_EMPTY", None
+        RemoveColumns(dt1, colsToDrop);
+        RemoveColumns(dt2, colsToDrop);
 
-    if df_ref.empty or df_new.empty:
-        return "KO_MISSING_DATA", f"L'un des deux DataFrames est vide pour la table {table_name}."
+        // ÉTAPE 4 : Alignement des schémas de données (Colonnes communes)
+        var cols1 = dt1.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToList();
+        var cols2 = dt2.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToList();
+        var commonCols = cols1.Intersect(cols2, StringComparer.OrdinalIgnoreCase).OrderBy(c => c).ToList();
 
-    # ÉTAPE 2 : Isolation des données
-    # On travaille systématiquement sur des copies pour éviter que nos transformations
-    # (arrondis, suppressions de colonnes) n'altèrent les DataFrames originaux passés en paramètre.
-    df1 = df_ref.copy()
-    df2 = df_new.copy()
+        if (!commonCols.Any())
+            return ("KO_NO_COMMON_COLS", "Aucune colonne commune trouvée après l'application des filtres d'exclusion.", null);
 
-    # ÉTAPE 3 : Application des règles d'exclusion
-    # Certaines colonnes sont purement techniques (clés primaires, timestamps de mise à jour, auteurs)
-    # et seront TOUJOURS différentes d'un contrat à l'autre. On doit les exclure avant la comparaison.
-    cols_to_drop = list(IGNORE_COLUMNS)
+        KeepOnlyCommonColumns(dt1, commonCols);
+        KeepOnlyCommonColumns(dt2, commonCols);
 
-    if table_name in SPECIFIC_EXCLUSIONS:
-        cols_to_drop.extend(SPECIFIC_EXCLUSIONS[table_name])
+        // ÉTAPE 5 : Normalisation et formatage des données
+        NormalizeData(dt1, commonCols);
+        NormalizeData(dt2, commonCols);
 
-    # On s'assure de ne tenter de supprimer que les colonnes qui existent réellement dans le dataset
-    existing_cols_to_drop = [col for col in cols_to_drop if col in df1.columns]
+        // ÉTAPE 6 : Alignement des enregistrements (Tri)
+        try
+        {
+            string sortString = string.Join(", ", commonCols);
+            
+            dt1.DefaultView.Sort = sortString;
+            dt1 = dt1.DefaultView.ToTable();
 
-    df1 = df1.drop(columns=existing_cols_to_drop, errors='ignore')
-    df2 = df2.drop(columns=existing_cols_to_drop, errors='ignore')
+            dt2.DefaultView.Sort = sortString;
+            dt2 = dt2.DefaultView.ToTable();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Attention: Le tri technique a échoué sur la table {tableName}. Raison : {ex.Message}");
+        }
 
-    # ÉTAPE 4 : Alignement des schémas de données
-    # On détermine l'intersection exacte des colonnes entre les deux DataFrames.
-    # Cela permet d'éviter les erreurs si une nouvelle colonne a été ajoutée dans l'environnement cible
-    # entre le moment de la création du snapshot (source) et le moment de la comparaison.
-    common_cols = sorted(list(df1.columns.intersection(df2.columns)))
+        // ÉTAPE 7 : Comparaison finale et génération du rapport d'écarts
+        if (dt1.Rows.Count != dt2.Rows.Count)
+        {
+            return ("KO_ROW_COUNT", $"Écart sur le volume de données : Source = {dt1.Rows.Count} lignes vs Cible = {dt2.Rows.Count} lignes.", null);
+        }
 
-    if not common_cols:
-        return "KO_NO_COMMON_COLS", "Aucune colonne commune trouvée après l'application des filtres d'exclusion."
+        try
+        {
+            DataTable diffTable = CreateDiffTable();
+            bool hasDifferences = false;
 
-    df1 = df1[common_cols]
-    df2 = df2[common_cols]
+            for (int i = 0; i < dt1.Rows.Count; i++)
+            {
+                foreach (string colName in commonCols)
+                {
+                    object val1 = dt1.Rows[i][colName];
+                    object val2 = dt2.Rows[i][colName];
 
-    # ÉTAPE 5 : Normalisation et formatage des données
-    # Les systèmes peuvent renvoyer des données équivalentes sous des formats légèrement différents.
-    # Il faut nettoyer ces données pour éviter de lever des erreurs sur des détails non métiers.
-    for col in common_cols:
+                    if (!EqualsNormalized(val1, val2))
+                    {
+                        hasDifferences = true;
+                        diffTable.Rows.Add(i + 1, colName, val1 == DBNull.Value ? "NULL" : val1, val2 == DBNull.Value ? "NULL" : val2);
+                    }
+                }
+            }
 
-        # Traitement des chaînes de caractères (Varchar/String)
-        # On supprime les espaces superflus (strip) et on uniformise les représentations des valeurs nulles.
-        if df1[col].dtype == object:
-            df1[col] = df1[col].astype(str).str.strip().replace({'nan': np.nan, 'None': np.nan})
-            df2[col] = df2[col].astype(str).str.strip().replace({'nan': np.nan, 'None': np.nan})
+            if (!hasDifferences)
+                return ("OK", null, null);
 
-        # Traitement des valeurs numériques (Float)
-        # On arrondit à 4 décimales pour éviter les faux positifs liés à l'imprécision des bases de données
-        # sur les nombres à virgule flottante (ex: 12.00000001 n'est pas vu comme égal à 12.00000000 sans arrondi).
-        elif pd.api.types.is_float_dtype(df1[col]):
-            df1[col] = df1[col].round(4)
-            df2[col] = df2[col].round(4)
+            return ("KO", null, diffTable);
+        }
+        catch (Exception ex)
+        {
+            return ("KO_ERROR", $"Erreur technique lors de la génération du différentiel : {ex.Message}", null);
+        }
+    }
 
-    # ÉTAPE 6 : Alignement des enregistrements (Tri)
-    # Pour que la comparaison croisée fonctionne, l'ordre des lignes doit être parfaitement identique.
-    # On trie l'intégralité du dataset en se basant sur toutes les colonnes restantes.
-    try:
-        df1 = df1.sort_values(by=common_cols).reset_index(drop=True)
-        df2 = df2.sort_values(by=common_cols).reset_index(drop=True)
-    except Exception as e:
-        print(f"Attention: Le tri technique a échoué sur la table {table_name}. Raison : {e}")
+    // --- MÉTHODES UTILITAIRES PRIVÉES ---
 
-    # ÉTAPE 7 : Comparaison finale et génération du rapport d'écarts
-    # La méthode equals() vérifie si les valeurs sont strictement identiques après le nettoyage.
-    if df1.equals(df2):
-        return "OK", None
+    private static void RemoveColumns(DataTable dt, HashSet<string> colsToDrop)
+    {
+        for (int i = dt.Columns.Count - 1; i >= 0; i--)
+        {
+            if (colsToDrop.Contains(dt.Columns[i].ColumnName))
+                dt.Columns.RemoveAt(i);
+        }
+    }
 
-    # S'il y a des différences, on tente de générer un rapport détaillé des écarts.
-    try:
-        # La fonction compare() de pandas extrait uniquement les cellules présentant des différences.
-        # align_axis=0 permet d'empiler les lignes (Source puis Cible) pour une lecture plus aisée dans les exports Excel/CSV.
-        diff = df1.compare(df2, align_axis=0, keep_shape=False, keep_equal=False)
+    private static void KeepOnlyCommonColumns(DataTable dt, List<string> commonCols)
+    {
+        var commonSet = new HashSet<string>(commonCols, StringComparer.OrdinalIgnoreCase);
+        for (int i = dt.Columns.Count - 1; i >= 0; i--)
+        {
+            if (!commonSet.Contains(dt.Columns[i].ColumnName))
+                dt.Columns.RemoveAt(i);
+        }
+    }
 
-        # On renomme l'index technique ('self' et 'other') généré par pandas par des termes clairs.
-        diff.index = diff.index.set_levels(['Source', 'Cible'], level=1)
+    private static void NormalizeData(DataTable dt, List<string> commonCols)
+    {
+        foreach (DataRow row in dt.Rows)
+        {
+            foreach (string colName in commonCols)
+            {
+                if (row[colName] == DBNull.Value) continue;
 
-        return "KO", diff
+                Type colType = dt.Columns[colName].DataType;
 
-    except ValueError:
-        # L'exception ValueError est levée par pandas si les deux DataFrames n'ont pas le même nombre de lignes.
-        # Dans ce cas, une comparaison cellule par cellule est impossible.
-        return "KO_ROW_COUNT", f"Écart sur le volume de données : Source = {len(df1)} lignes vs Cible = {len(df2)} lignes."
+                if (colType == typeof(string))
+                {
+                    string strVal = row[colName].ToString().Trim();
+                    if (strVal == "nan" || strVal == "None" || string.IsNullOrEmpty(strVal))
+                        row[colName] = DBNull.Value;
+                    else
+                        row[colName] = strVal;
+                }
+                else if (colType == typeof(float) || colType == typeof(double) || colType == typeof(decimal))
+                {
+                    // On convertit en double pour l'arrondi mathématique à 4 décimales
+                    if (double.TryParse(row[colName].ToString(), out double numVal))
+                    {
+                        row[colName] = Math.Round(numVal, 4);
+                    }
+                }
+            }
+        }
+    }
 
-    except Exception as e:
-        # Catch global pour s'assurer que le script global ne crashe pas si une table a des données corrompues.
-        return "KO_ERROR", f"Erreur technique lors de la génération du différentiel : {str(e)}"
+    private static bool EqualsNormalized(object val1, object val2)
+    {
+        if (val1 == DBNull.Value && val2 == DBNull.Value) return true;
+        if (val1 == DBNull.Value || val2 == DBNull.Value) return false;
+        
+        return val1.ToString() == val2.ToString();
+    }
+
+    private static DataTable CreateDiffTable()
+    {
+        DataTable diff = new DataTable("Differences");
+        diff.Columns.Add("RowIndex", typeof(int));
+        diff.Columns.Add("ColumnName", typeof(string));
+        diff.Columns.Add("SourceValue", typeof(string));
+        diff.Columns.Add("TargetValue", typeof(string));
+        return diff;
+    }
+}

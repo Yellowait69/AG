@@ -1,0 +1,109 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\src\\database.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\database.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\src\\comparator.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\comparator.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\sql\\queries.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:sql\\queries.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\config\\settings.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:config\\settings.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\config\\exclusions.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:config\\exclusions.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "database.py",
+              "DocumentMoniker": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\src\\database.py",
+              "RelativeDocumentMoniker": "src\\database.py",
+              "ToolTip": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\src\\database.py",
+              "RelativeToolTip": "src\\database.py",
+              "ViewState": "AgIAAGIAAAAAAAAAAAAAwIoAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-02-19T13:44:10.996Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "comparator.py",
+              "DocumentMoniker": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\src\\comparator.py",
+              "RelativeDocumentMoniker": "src\\comparator.py",
+              "ToolTip": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\src\\comparator.py",
+              "RelativeToolTip": "src\\comparator.py",
+              "ViewState": "AgIAAIMAAAAAAAAAAAAAwKsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-02-19T13:39:29.281Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "queries.py",
+              "DocumentMoniker": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\sql\\queries.py",
+              "RelativeDocumentMoniker": "sql\\queries.py",
+              "ToolTip": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\sql\\queries.py",
+              "RelativeToolTip": "sql\\queries.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-02-19T13:36:32.67Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "settings.py",
+              "DocumentMoniker": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\config\\settings.py",
+              "RelativeDocumentMoniker": "config\\settings.py",
+              "ToolTip": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\config\\settings.py",
+              "RelativeToolTip": "config\\settings.py",
+              "ViewState": "AgIAABEAAAAAAAAAAAAAwDkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-02-19T13:33:20.923Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "exclusions.py",
+              "DocumentMoniker": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\config\\exclusions.py",
+              "RelativeDocumentMoniker": "config\\exclusions.py",
+              "ToolTip": "C:\\Users\\maxen\\source\\repos\\Yellowait69\\AG\\config\\exclusions.py",
+              "RelativeToolTip": "config\\exclusions.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADQAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-02-19T13:32:58.661Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{56df62a4-05a3-4e5b-aa1a-99371ccfb997}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
