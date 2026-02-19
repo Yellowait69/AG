@@ -1,7 +1,6 @@
 QUERIES = {
-    # -------------------------------------------------------------------------
-    # 1. ÉTAPE PRÉLIMINAIRE : RÉCUPÉRATION ID
-    # -------------------------------------------------------------------------
+    # RÉCUPÉRATION ID
+
     # Ajout de TOP 1 pour sécuriser le retour scalaire
     "GET_INTERNAL_ID": """
                        SELECT TOP 1 NO_CNT
@@ -9,9 +8,9 @@ QUERIES = {
                        WHERE NO_CNT_EXTENDED = '{contract_number}'
                        """,
 
-    # -------------------------------------------------------------------------
-    # 2. DONNÉES CONTRAT & AVENANTS
-    # -------------------------------------------------------------------------
+
+    # DONNÉES CONTRAT & AVENANTS
+
     "LV.SCNTT0": """
                  SELECT * FROM LV.SCNTT0 WITH (NOLOCK)
                  WHERE NO_CNT = {internal_id}
@@ -23,9 +22,9 @@ QUERIES = {
                  ORDER BY NO_AVT ASC
                  """,
 
-    # -------------------------------------------------------------------------
-    # 3. DONNÉES PAIEMENTS / RECETTES (NOUVEAU & CRITIQUE)
-    # -------------------------------------------------------------------------
+
+    # DONNÉES PAIEMENTS
+
     # Indispensable pour vérifier que l'activation (le paiement) a bien été prise en compte.
     # On trie par date de référence et timestamp pour comparer l'historique comptable.
     "LV.PRCTT0": """
@@ -34,18 +33,17 @@ QUERIES = {
                  ORDER BY D_REF_PRM ASC, TSTAMP_CRT_RCT ASC
                  """,
 
-    # -------------------------------------------------------------------------
-    # 4. DONNÉES PRODUITS / GARANTIES
-    # -------------------------------------------------------------------------
+    # DONNÉES PRODUITS / GARANTIES
+
     "LV.SWBGT0": """
                  SELECT * FROM LV.SWBGT0 WITH (NOLOCK)
                  WHERE NO_CNT = {internal_id}
                  ORDER BY NO_AVT ASC, C_PROP ASC
                  """,
 
-    # -------------------------------------------------------------------------
-    # 5. DONNÉES BÉNÉFICIAIRES & CLAUSES
-    # -------------------------------------------------------------------------
+
+    # DONNÉES BÉNÉFICIAIRES & CLAUSES
+
     "LV.SCLST0": """
                  SELECT * FROM LV.SCLST0 WITH (NOLOCK)
                  WHERE NO_CNT = {internal_id}
@@ -58,10 +56,10 @@ QUERIES = {
                  ORDER BY NO_AVT ASC, NO_ORD_CLS ASC, NO_ORD_RNG ASC
                  """,
 
-    # -------------------------------------------------------------------------
-    # 6. DONNÉES FINANCIÈRES (RÉSERVES & MOUVEMENTS)
-    # -------------------------------------------------------------------------
-    # Amélioration : Tri par Date d'abord, puis par Séquence.
+
+    # DONNÉES FINANCIÈRES
+
+    #Tri par date d'abord, puis par séquence.
     # Cela stabilise la comparaison si les séquences techniques changent mais pas la chronologie métier.
     "LV.BSPDT0": """
                  SELECT * FROM LV.BSPDT0 WITH (NOLOCK)

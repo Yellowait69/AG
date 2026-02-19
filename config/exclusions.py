@@ -1,14 +1,14 @@
-# -----------------------------------------------------------------------------
+
 # LISTE GLOBALE
-# -----------------------------------------------------------------------------
+
 IGNORE_COLUMNS = [
-    # --- Identifiants techniques majeurs ---
+    # Identifiants techniques majeurs
     'NO_CNT',
     'NO_CNT_EXTENDED',
     'NO_AVT',
     'C_STE',
 
-    # --- Dates techniques de création et modification  ---
+    # Dates techniques de création et modification
     'D_CRT',
     'D_CRT_CNT',
     'TSTAMP_DMOD',
@@ -16,7 +16,7 @@ IGNORE_COLUMNS = [
     'D_JOB_DMOD',
     'D_GEST_DMOD',
 
-    # --- Auteurs et Processus ---
+    # Auteurs et Processus
     'NM_AUTEUR_CRT',
     'NM_AUTEUR_DMOD',
     'NM_AUTEUR',
@@ -25,7 +25,7 @@ IGNORE_COLUMNS = [
     'C_ID_GEST',
     'TY_DMOD',
 
-    # --- Fillers et champs vides ---
+    # Fillers et champs vides
     'T_FILLER_11',
     'T_FILLER_20',
     'T_FILLER_30',
@@ -35,9 +35,9 @@ IGNORE_COLUMNS = [
     'T_FILLER_85'
 ]
 
-# -----------------------------------------------------------------------------
+
 # EXCLUSIONS SPÉCIFIQUES
-# -----------------------------------------------------------------------------
+
 SPECIFIC_EXCLUSIONS = {
     # Table Contrat
     'LV.SCNTT0': [
@@ -46,7 +46,7 @@ SPECIFIC_EXCLUSIONS = {
         'NO_BUR_INT_GES'
     ],
 
-    # Table Bénéficiaires / Clauses (SCLS / SCLR)
+    # Table Bénéficiaires / Clauses
     'LV.SCLST0': [
         'NO_ORD_CLS'
     ],
@@ -55,7 +55,7 @@ SPECIFIC_EXCLUSIONS = {
         'NO_ORD_CLS'
     ],
 
-    # Tables Financières / Support (BSPD / BSPG)
+    # Tables Financières
     'LV.BSPDT0': [
         'NO_ORD_TRF_EPA',
         'NO_ORD_MVT_EPA',
@@ -70,7 +70,7 @@ SPECIFIC_EXCLUSIONS = {
         'NO_ORD_TRF_EPA'
     ],
 
-    # Table Avenant (SAVT)
+    # Table Avenant
     'LV.SAVTT0': [
         'NO_AVT_REF',
         'NO_AVT_CLS',
